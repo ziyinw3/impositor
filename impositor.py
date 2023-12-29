@@ -7,6 +7,29 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 import threading
 
+# Check requirements to install
+requirements = "./requirements.txt"
+
+try:
+    # Use subprocess.run to capture the output and return code
+    result = subprocess.run(
+        [sys.executable, "-m", "pip", "install", "-r", requirements],
+        capture_output=True,
+        text=True,
+        check=True  # This will raise a CalledProcessError if the command fails
+    )
+
+    # Print the output of the pip command
+    print(result.stdout)
+
+except subprocess.CalledProcessError as e:
+    print("Error installing requirements:")
+    print(e.stderr)  # Print the error message if the command failed
+
+except Exception as e:
+    print("An unexpected error occurred:")
+    print(str(e))
+
 # Set up GUI
 class Dialogue(tk.Tk):
     def __init__(self, title):
