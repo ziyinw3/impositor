@@ -4,7 +4,7 @@ import subprocess
 import time
 
 # Check requirements to install
-requirements = "./requirements.txt"
+requirements = "requirements.txt"
 
 try:
     # Use subprocess.run to capture the output and return code
@@ -32,9 +32,6 @@ import tkinter as tk
 from tkinter import filedialog, simpledialog, messagebox
 
 # Set up GUI
-# ... (previous code)
-
-# Set up GUI
 class Dialogue(tk.Tk):
     def __init__(self, title):
         super().__init__()
@@ -50,34 +47,20 @@ class Dialogue(tk.Tk):
         self.file_button = tk.Button(frame, text="Browse", command=self.select_file)
         self.file_button.grid(row=0, column=1, padx=5, pady=5)
 
-        # Display total number of pages in manuscript
-        self.pages_label = tk.Label(frame, text="Number of pages in manuscript:")
-        self.pages_label.grid(row=1, column=0, padx=5, pady=5)
-        self.total_pages_label = tk.Label(frame, text="")
-        self.total_pages_label.grid(row=1, column=1, padx=5, pady=5)
-
-        # Enter # of quires and pages per quire
+        # Enter # of quires and pages
         self.quires_label = tk.Label(frame, text="Number of quires:")
-        self.quires_label.grid(row=2, column=0, padx=5, pady=5)
-        self.quires_entry_var = tk.StringVar()
-        self.quires_entry = tk.Entry(frame, width=10, textvariable=self.quires_entry_var)
-        self.quires_entry.grid(row=2, column=1, padx=5, pady=5)
-        self.quires_entry_var.trace_add('write', self.update_values)
+        self.quires_label.grid(row=1, column=0, padx=5, pady=5)
+        self.quires_entry = tk.Entry(frame, width=10)
+        self.quires_entry.grid(row=1, column=1, padx=5, pady=5)
 
-        self.quire_pages_label = tk.Label(frame, text="Number of pages per quire:")
-        self.quire_pages_label.grid(row=3, column=0, padx=5, pady=5)
-        self.quire_pages_entry_var = tk.StringVar()
-        self.quire_pages_entry = tk.Entry(frame, width=10, textvariable=self.quire_pages_entry_var)
-        self.quire_pages_entry.grid(row=3, column=1, padx=5, pady=5)
-        self.quire_pages_entry_var.trace_add('write', self.update_values)
+        self.pages_label = tk.Label(frame, text="Number of pages (index 1):")
+        self.pages_label.grid(row=2, column=0, padx=5, pady=5)
+        self.pages_entry = tk.Entry(frame, width=10)
+        self.pages_entry.grid(row=2, column=1, padx=5, pady=5)
 
         # OK button
         self.submit_button = tk.Button(frame, text="Confirm", command=self.submit)
-        self.submit_button.grid(row=4, columnspan=2, pady=20)
-
-        # Initialize file path and total pages
-        self.file_path = None
-        self.total_pages = None
+        self.submit_button.grid(row=3, columnspan=2, pady=20)
 
     # Class functions
     def select_file(self):
@@ -85,79 +68,33 @@ class Dialogue(tk.Tk):
         if self.file_path:
             file_title = self.file_path.split("/")[-1]
             self.file_label.config(text=f"File title: {file_title}")
-
-            # Display total number of pages in manuscript
-            original_pdf = PyPDF2.PdfFileReader(self.file_path)
-            self.total_pages = original_pdf.getNumPages()
-            self.total_pages_label.config(text=f"{self.total_pages} pages")
-
-            # Update quires and quire pages if one is already entered
-            self.update_values()
-
-    def update_values(self, *args):
-        try:
-            quires = int(self.quires_entry_var.get()) if self.quires_entry_var.get() else None
-            quire_pages = int(self.quire_pages_entry_var.get()) if self.quire_pages_entry_var.get() else None
-
-            if quires is not None and quire_pages is None:
-                # Calculate and update quire pages
-                quire_pages = self.total_pages // quires
-                self.quire_pages_entry_var.set(str(quire_pages))
-            elif quires is None and quire_pages is not None:
-                # Calculate and update quires
-                quires = self.total_pages // quire_pages
-                self.quires_entry_var.set(str(quires))
-
-            if quires is not None:
-                if quires <= 0 or quires != int(self.quires_entry_var.get()):
-                    self.quires_entry.config(bg="red")
-                    self.quires_entry_var.set("!")
-                else:
-                    self.quires_entry.config(bg="white")
-
-            if quire_pages is not None:
-                if quire_pages <= 0 or quire_pages % 2 != 0 or quire_pages != int(self.quire_pages_entry_var.get()):
-                    self.quire_pages_entry.config(bg="red")
-                    self.quire_pages_entry_var.set("!")
-                else:
-                    self.quire_pages_entry.config(bg="white")
-
-        except ValueError:
-            pass
+        else:
+            self.file_label.config(text="File Title:")
 
     def submit(self):
-        quires = self.quires_entry_var.get()
-        quire_pages = self.quire_pages_entry_var.get()
+        quires = self.quires_entry.get()
+        pages = self.pages_entry.get()
 
-        if not self.file_path or not quires or not quire_pages:
-            messagebox.showerror("Error", "Please fill in all fields.")
-            return
-
-        try:
+        if self.file_path and quires and pages:
             quires = int(quires)
-            quire_pages = int(quire_pages)
-
-            if quires <= 0 or quire_pages <= 0 or quire_pages % 2 != 0:
-                messagebox.showerror("Error", "Quires and pages per quire must be positive integers. Pages per quire must be even.")
+            pages = int(pages)
+            if quires <= 0 or pages <= 0 or pages % 2 != 0:
+                messagebox.showerror("Error", "Quires and pages must be positive integers. Pages must be even.")
                 return
-
-            # Validate the number of pages in the original script
-            original_pdf = PyPDF2.PdfFileReader(self.file_path)
-            total_pages_original = original_pdf.getNumPages()
-            if quires * quire_pages != total_pages_original:
-                messagebox.showerror("Error", "The product of quire number and pages per quire must equal the total number of pages in the original script.")
+            quire_size = pages / quires
+            if pages % quires != 0 and quire_size % 2 != 0:
+                messagebox.showerror("Error", "quire size uneven, check your math.")
                 return
-
+            
             print("File path:", self.file_path)
             print("Number of quires:", quires)
-            print("Number of pages per quire:", quire_pages)
+            print("Number of pages per quire:", pages)
 
-            # process_pdf(self.file_path, quires, quire_pages)  # Uncomment this line to enable the processing
+            process_pdf(self.file_path, quires, pages)
             self.destroy()
 
-        except ValueError:
-            messagebox.showerror("Error", "Please enter valid numerical values.")
-
+        else:
+            messagebox.showerror("Error", "Please fill in all fields.")
 
 
 # Set up PDF processing
@@ -225,7 +162,6 @@ def main():
 
         response = messagebox.askyesno("Continue?", "Do you want to imposit another file?")
         if not response:
-            messagebox.showinfo("Thanks!", "Thanks for using!")
             break  # Exit the loop if the user doesn't want to continue
         # user_input.destroy()
 
