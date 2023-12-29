@@ -2,34 +2,9 @@ import os
 import sys
 import subprocess
 import time
-
-# Check requirements to install
-requirements = "requirements.txt"
-
-try:
-    # Use subprocess.run to capture the output and return code
-    result = subprocess.run(
-        [sys.executable, "-m", "pip", "install", "-r", requirements],
-        capture_output=True,
-        text=True,
-        check=True  # This will raise a CalledProcessError if the command fails
-    )
-    
-    # Print the output of the pip command
-    print(result.stdout)
-
-except subprocess.CalledProcessError as e:
-    print("Error installing requirements:")
-    print(e.stderr)  # Print the error message if the command failed
-
-except Exception as e:
-    print("An unexpected error occurred:")
-    print(str(e))
-
-# Imports
 import PyPDF2
 import tkinter as tk
-from tkinter import filedialog, simpledialog, messagebox
+from tkinter import filedialog, messagebox, ttk
 
 # Set up GUI
 class Dialogue(tk.Tk):
@@ -64,9 +39,15 @@ class Dialogue(tk.Tk):
         self.pages_entry = tk.Entry(frame, width=10)
         self.pages_entry.grid(row=3, column=1, padx=5, pady=5)
 
+        # Progress bar
+        self.progress_label = tk.Label(frame, text="Progress:")
+        self.progress_label.grid(row=4, column=0, padx=5, pady=5)
+        self.progress_bar = ttk.Progressbar(frame, mode='determinate', length=200)
+        self.progress_bar.grid(row=4, column=1, padx=5, pady=5)
+
         # OK button
         self.submit_button = tk.Button(frame, text="Confirm", command=self.submit)
-        self.submit_button.grid(row=4, columnspan=2, pady=20)
+        self.submit_button.grid(row=5, columnspan=2, pady=20)
         self.number_of_pages = 0
 
     # Class functions
@@ -114,35 +95,38 @@ class Dialogue(tk.Tk):
 
             if not quires and not pages:
                 messagebox.showerror("Error", "Please fill at least one field.")
-                
-            
+
             print("File path:", self.file_path)
             print("Total number of pages:", self.number_of_pages)
             print("Number of quires:", quires)
             print("Number of pages per quire:", pages)
 
-            process_pdf(self.file_path, quires, pages)
+            process_pdf(self, self.file_path, quires, pages)
             self.destroy()
 
         else:
             messagebox.showerror("Error", "Please select a file.")
 
-
 # Set up PDF processing
-def process_pdf(file_path, quires, pages):
+def process_pdf(dialogue, file_path, quires, pages):
     if quires and pages:
         # start clock
         start_time = time.time()
 
         print("Now processing PDF")
 
-
-        
         pdf = PyPDF2.PdfFileReader(file_path)
         impositioned_pdf = PyPDF2.PdfFileWriter()
+        total_pages = pdf.getNumPages()
+
+        # Update progress bar settings
+        progress_step = 100 / total_pages * 2
+        progress_value = 0
+        dialogue.progress_bar.config(mode='determinate', maximum=100, value=progress_value)
+
         for q in range(quires):
             print("Working on quire #:" + str(q + 1))
-            # iterate through each pair of pages within current quire
+            # iterate through each pair of pages within the current quire
             for i in range(pages // 2):
                 # set up if i even
                 if i % 2 != 0:
@@ -158,8 +142,14 @@ def process_pdf(file_path, quires, pages):
                 concat_page.mergeTranslatedPage(left_page, 0, 0)
                 concat_page.mergeTranslatedPage(right_page, left_page.mediaBox.getWidth(), 0)
                 impositioned_pdf.addPage(concat_page)
+
+                # Update progress bar value
+                progress_value += progress_step
+                dialogue.progress_bar['value'] = progress_value
+                dialogue.update_idletasks()
+
         # save pdf
-        # parse new file path
+        # parse the new file path
         input_dir, input_filename = os.path.split(file_path)
         input_name, input_ext = os.path.splitext(input_filename)
 
@@ -184,7 +174,6 @@ def main():
         response = messagebox.askyesno("Continue?", "Do you want to imposit another file?")
         if not response:
             break  # Exit the loop if the user doesn't want to continue
-        # user_input.destroy()
 
 # start program
 if __name__ == "__main__":
