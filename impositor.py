@@ -47,20 +47,27 @@ class Dialogue(tk.Tk):
         self.file_button = tk.Button(frame, text="Browse", command=self.select_file)
         self.file_button.grid(row=0, column=1, padx=5, pady=5)
 
+        # Display number of pages
+        self.pages_label = tk.Label(frame, text="Number of pages in manuscript:")
+        self.pages_label.grid(row=1, column=0, padx=5, pady=5)
+        self.pages_display = tk.Label(frame, text="")
+        self.pages_display.grid(row=1, column=1, padx=5, pady=5)
+
         # Enter # of quires and pages
         self.quires_label = tk.Label(frame, text="Number of quires:")
-        self.quires_label.grid(row=1, column=0, padx=5, pady=5)
+        self.quires_label.grid(row=2, column=0, padx=5, pady=5)
         self.quires_entry = tk.Entry(frame, width=10)
-        self.quires_entry.grid(row=1, column=1, padx=5, pady=5)
+        self.quires_entry.grid(row=2, column=1, padx=5, pady=5)
 
-        self.pages_label = tk.Label(frame, text="Number of pages (index 1):")
-        self.pages_label.grid(row=2, column=0, padx=5, pady=5)
+        self.pages_label = tk.Label(frame, text="Number of pages per quire:")
+        self.pages_label.grid(row=3, column=0, padx=5, pady=5)
         self.pages_entry = tk.Entry(frame, width=10)
-        self.pages_entry.grid(row=2, column=1, padx=5, pady=5)
+        self.pages_entry.grid(row=3, column=1, padx=5, pady=5)
 
         # OK button
         self.submit_button = tk.Button(frame, text="Confirm", command=self.submit)
-        self.submit_button.grid(row=3, columnspan=2, pady=20)
+        self.submit_button.grid(row=4, columnspan=2, pady=20)
+        self.number_of_pages = 0
 
     # Class functions
     def select_file(self):
@@ -68,6 +75,16 @@ class Dialogue(tk.Tk):
         if self.file_path:
             file_title = self.file_path.split("/")[-1]
             self.file_label.config(text=f"File title: {file_title}")
+
+            # Retrieve the number of pages directly within the select_file method
+            try:
+                pdf = PyPDF2.PdfFileReader(self.file_path)
+                self.number_of_pages = pdf.getNumPages()
+                self.pages_display.config(text=f"{self.number_of_pages}")
+            except Exception as e:
+                print(f"Error getting number of pages: {str(e)}")
+                self.pages_display.config(text="Number of Pages: Error")
+
         else:
             self.file_label.config(text="File Title:")
 
@@ -75,18 +92,32 @@ class Dialogue(tk.Tk):
         quires = self.quires_entry.get()
         pages = self.pages_entry.get()
 
-        if self.file_path and quires and pages:
-            quires = int(quires)
-            pages = int(pages)
-            if quires <= 0 or pages <= 0 or pages % 2 != 0:
-                messagebox.showerror("Error", "Quires and pages must be positive integers. Pages must be even.")
-                return
-            quire_size = pages / quires
-            if pages % quires != 0 and quire_size % 2 != 0:
-                messagebox.showerror("Error", "quire size uneven, check your math.")
-                return
+        if self.file_path:
+            if quires:
+                quires = int(quires)
+            if pages:
+                pages = int(pages)
+            if quires:
+                if quires <= 0 or self.number_of_pages % quires != 0:
+                    messagebox.showerror("Error", "Number of quires not divisible by manuscript length.")
+                else:
+                    pages = self.number_of_pages // quires
+            if pages:
+                if pages <= 0 or pages % 2 != 0 or self.number_of_pages % pages != 0:
+                    messagebox.showerror("Error", "Manuscript length not divisible by quire size, or quire size is odd.")
+                else:
+                    quires = self.number_of_pages // pages
+
+            if quires and pages:
+                if quires * pages != self.number_of_pages:
+                    messagebox.showerror("Error", "Quires times pages per quire does not equal manuscript length. Tip: Clear both fields and put in only an even value for number of pages per quire.")
+
+            if not quires and not pages:
+                messagebox.showerror("Error", "Please fill at least one field.")
+                
             
             print("File path:", self.file_path)
+            print("Total number of pages:", self.number_of_pages)
             print("Number of quires:", quires)
             print("Number of pages per quire:", pages)
 
@@ -94,38 +125,32 @@ class Dialogue(tk.Tk):
             self.destroy()
 
         else:
-            messagebox.showerror("Error", "Please fill in all fields.")
+            messagebox.showerror("Error", "Please select a file.")
 
 
 # Set up PDF processing
 def process_pdf(file_path, quires, pages):
-    try:
+    if quires and pages:
         # start clock
         start_time = time.time()
 
         print("Now processing PDF")
 
-        quires = int(quires)
-        pages = int(pages)
-        if pages % 2 != 0:
-            raise ValueError("Total number of pages must be even.")
-        
-        pages_per_quire = pages // quires
-        # print(str(pages_per_quire))
+
         
         pdf = PyPDF2.PdfFileReader(file_path)
         impositioned_pdf = PyPDF2.PdfFileWriter()
         for q in range(quires):
             print("Working on quire #:" + str(q + 1))
             # iterate through each pair of pages within current quire
-            for i in range(pages_per_quire // 2):
+            for i in range(pages // 2):
                 # set up if i even
                 if i % 2 != 0:
-                    left_page = pdf.pages[q * pages_per_quire + i]
-                    right_page = pdf.pages[q * pages_per_quire + pages_per_quire - i - 1]
+                    left_page = pdf.pages[q * pages + i]
+                    right_page = pdf.pages[q * pages + pages - i - 1]
                 else:
-                    right_page = pdf.pages[q * pages_per_quire + i]
-                    left_page = pdf.pages[q * pages_per_quire + pages_per_quire - i - 1]
+                    right_page = pdf.pages[q * pages + i]
+                    left_page = pdf.pages[q * pages + pages - i - 1]
                 concat_page = PyPDF2.pdf.PageObject.createBlankPage(
                     width=left_page.mediaBox.getWidth() + right_page.mediaBox.getWidth(),
                     height=left_page.mediaBox.getHeight()
@@ -149,10 +174,6 @@ def process_pdf(file_path, quires, pages):
         end_time = time.time()
         runtime = end_time - start_time
         print(f"Elapsed Time: {runtime:.2f} seconds")
-
-    except Exception as e:
-        print(f"Error processing page {i}: {str(e)}")
-        messagebox.showerror("Error", str(e))
 
 # Main function to create and manage the GUI
 def main():
