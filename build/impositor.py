@@ -111,6 +111,7 @@ class Dialogue(tk.Tk):
             messagebox.showerror("Error", "Please select a file.")
 
     def end_program(self, event):
+        print("Escape key pressed")
         self.destroy()
 
 # Set up PDF processing
@@ -165,7 +166,7 @@ def process_pdf(dialogue, file_path, quires, pages):
 
         with open(new_file_path, "wb") as new_pdf_file:
             impositioned_pdf.write(new_pdf_file)
-            messagebox.showinfo("Operations", "Saved to folder.")
+            messagebox.showinfo("Operations", f"Saved to folder: {new_file_name}")
 
         end_time = time.time()
         runtime = end_time - start_time
