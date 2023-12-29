@@ -5,6 +5,7 @@ import time
 import PyPDF2
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
+import threading
 
 # Set up GUI
 class Dialogue(tk.Tk):
@@ -165,7 +166,8 @@ def process_pdf(dialogue, file_path, quires, pages):
 
         with open(new_file_path, "wb") as new_pdf_file:
             impositioned_pdf.write(new_pdf_file)
-            messagebox.showinfo("Operations", "Saved to folder.")
+            messagebox.showinfo("Operations", f"Saved to folder: {new_file_name}")
+
 
         end_time = time.time()
         runtime = end_time - start_time
@@ -174,7 +176,7 @@ def process_pdf(dialogue, file_path, quires, pages):
 # Main function to create and manage the GUI
 def main():
     while True:
-        user_input = Dialogue("Options")
+        user_input = Dialogue("Impositor")
         user_input.mainloop()
 
         response = messagebox.askyesno("Continue?", "Do you want to imposit another file?")
