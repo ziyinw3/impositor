@@ -5,21 +5,6 @@ import time
 import PyPDF2
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
-import threading
-
-# Check requirements to install
-requirements = "./requirements.txt"
-
-    # Use subprocess.run to capture the output and return code
-result = subprocess.run(
-    [sys.executable, "-m", "pip", "install", "-r", requirements],
-    capture_output=True,
-    text=True,
-    check=True  # This will raise a CalledProcessError if the command fails
-)
-
-# Print the output of the pip command
-print(result.stdout)
 
 # Set up GUI
 class Dialogue(tk.Tk):
@@ -65,9 +50,6 @@ class Dialogue(tk.Tk):
         self.submit_button.grid(row=5, columnspan=2, pady=20)
         self.number_of_pages = 0
 
-        # Bind the Escape key to the end_program function
-        self.bind("<Escape>", self.end_program)
-
     # Class functions
     def select_file(self):
         self.file_path = filedialog.askopenfilename(filetypes=[("PDF files", "*.pdf")])
@@ -93,61 +75,37 @@ class Dialogue(tk.Tk):
 
         if self.file_path:
             if quires:
-                try:
-                    quires = int(quires)
-                except ValueError:
-                    messagebox.showerror("Error", "Please enter a valid number of quires.")
-                    return
+                quires = int(quires)
             if pages:
-                try:
-                    pages = int(pages)
-                except ValueError:
-                    messagebox.showerror("Error", "Please enter a valid number of pages per quire.")
-                    return
-
-            # Check if quires is a valid number
+                pages = int(pages)
             if quires:
                 if quires <= 0 or self.number_of_pages % quires != 0:
                     messagebox.showerror("Error", "Number of quires not divisible by manuscript length.")
-                    return
                 else:
                     pages = self.number_of_pages // quires
-
-            # Check if pages is a valid number
             if pages:
                 if pages <= 0 or pages % 2 != 0 or self.number_of_pages % pages != 0:
                     messagebox.showerror("Error", "Manuscript length not divisible by quire size, or quire size is odd.")
-                    return
                 else:
                     quires = self.number_of_pages // pages
 
-            # Safeguard: Check if quire fits on full sheets
-            if pages and pages % 4 != 0:
-                messagebox.showerror("Error", "Each quire must contain pages that fit onto full sheets (multiples of 4).")
-                return
-
-            # Check if the total number of pages matches the entered values
             if quires and pages:
                 if quires * pages != self.number_of_pages:
                     messagebox.showerror("Error", "Quires times pages per quire does not equal manuscript length. Tip: Clear both fields and put in only an even value for number of pages per quire.")
-                    return
+
+            if not quires and not pages:
+                messagebox.showerror("Error", "Please fill at least one field.")
 
             print("File path:", self.file_path)
             print("Total number of pages:", self.number_of_pages)
             print("Number of quires:", quires)
             print("Number of pages per quire:", pages)
 
-            # Process the PDF after all checks pass
             process_pdf(self, self.file_path, quires, pages)
             self.destroy()
 
         else:
             messagebox.showerror("Error", "Please select a file.")
-
-
-
-    def end_program(self, event):
-        self.destroy()
 
 # Set up PDF processing
 def process_pdf(dialogue, file_path, quires, pages):
@@ -201,8 +159,7 @@ def process_pdf(dialogue, file_path, quires, pages):
 
         with open(new_file_path, "wb") as new_pdf_file:
             impositioned_pdf.write(new_pdf_file)
-            messagebox.showinfo("Operations", f"Saved to folder: {new_file_name}")
-
+            messagebox.showinfo("Operations", "Saved to folder.")
 
         end_time = time.time()
         runtime = end_time - start_time
@@ -211,7 +168,7 @@ def process_pdf(dialogue, file_path, quires, pages):
 # Main function to create and manage the GUI
 def main():
     while True:
-        user_input = Dialogue("Impositor")
+        user_input = Dialogue("Options")
         user_input.mainloop()
 
         response = messagebox.askyesno("Continue?", "Do you want to imposit another file?")
